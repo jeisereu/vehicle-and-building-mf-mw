@@ -7,6 +7,7 @@ import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "../../components/ui/toast";
+import { createVehicleInspection } from "../../lib/api/vehicle-inspections";
 
 type ChecklistItem = {
   id: string;
@@ -136,6 +137,7 @@ export default function VehicleMaintenancePage() {
   const [toast, setToast] = useState({ title: "", description: "" });
   const [inspectionDate, setInspectionDate] = useState("");
   const [inspectionTime, setInspectionTime] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("vehicle-checklist-theme");
@@ -197,7 +199,7 @@ export default function VehicleMaintenancePage() {
     });
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
     const nextErrors: Record<string, string> = {};
@@ -238,9 +240,32 @@ export default function VehicleMaintenancePage() {
       setSubmitted(false);
       return;
     }
-    setSubmitted(true);
-    setToast({ title: "Inspection complete", description: "All required fields have been filled out successfully." });
-    setToastOpen(true);
+
+    setSubmitting(true);
+    try {
+      await createVehicleInspection({
+        vehicleType: String(formData.get("vehicle-type")),
+        plateNumber: String(formData.get("plate-number")),
+        driver: String(formData.get("driver")),
+        inspectionDateTime: `${inspectionDate}T${inspectionTime}`,
+        inspectedBy: String(formData.get("inspected-by")),
+        results: allItems.map((item) => ({
+          itemId: item.id,
+          itemName: item.name,
+          status: statuses[item.id] === "pass" ? "PASS" : "FAIL",
+          findings: String(formData.get(`finding-${item.id}`) || ""),
+        })),
+      });
+      setSubmitted(true);
+      setToast({ title: "Inspection complete", description: "The inspection was accepted by the API." });
+      setToastOpen(true);
+    } catch (error) {
+      setSubmitted(false);
+      setToast({ title: "Could not save inspection", description: error instanceof Error ? error.message : "The inspection API is unavailable." });
+      setToastOpen(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function exportCsv() {
@@ -252,7 +277,7 @@ export default function VehicleMaintenancePage() {
       ["Vehicle Type", String(formData.get("vehicle-type") || "")],
       ["Plate Number", String(formData.get("plate-number") || "")],
       ["Driver", String(formData.get("driver") || "")],
-      ["Inspection Date and Time", String(formData.get("inspection-date") || "")],
+      ["Inspection Date and Time", `${String(formData.get("inspection-date") || "")} ${formatTimeDisplay(String(formData.get("inspection-time") || ""))}`],
       ["Item", "Status", "Findings"],
       ...allItems.map((item) => [
         item.name,
@@ -353,7 +378,7 @@ export default function VehicleMaintenancePage() {
 
         <div className="form-actions no-print">
           <button className="secondary-button" type="button" onClick={resetForm}><RotateCcw size={14} aria-hidden="true" /> Clear form</button>
-          <button className="primary-button" type="submit"><Check size={15} aria-hidden="true" /> Complete inspection</button>
+          <button className="primary-button" type="submit" disabled={submitting}><Check size={15} aria-hidden="true" /> {submitting ? "Saving inspection..." : "Complete inspection"}</button>
         </div>
         {submitted && <p className="submit-message no-print" role="status">Inspection recorded for this session.</p>}
       </form>

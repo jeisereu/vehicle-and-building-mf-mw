@@ -98,11 +98,19 @@ a {
 }
 
 .home-panel {
-  width: min(100%, 720px);
-  padding: clamp(40px, 8vw, 92px);
+  width: min(100%, 900px);
+  padding: clamp(32px, 5vw, 58px);
   background: var(--surface);
   border-top: 6px solid var(--accent);
   box-shadow: var(--shadow);
+}
+
+.home-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-bottom: 25px;
+  border-bottom: 1px solid var(--line);
 }
 
 .brand-mark {
@@ -110,11 +118,23 @@ a {
   height: 52px;
   display: grid;
   place-items: center;
-  margin-bottom: 60px;
+  margin: 0;
   color: #fff;
   background: var(--accent);
   font: 700 14px/1 var(--font-geist-sans), sans-serif;
   letter-spacing: 1px;
+}
+
+.home-overline {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font: 10px/1.2 var(--font-geist-sans), sans-serif;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.home-intro {
+  margin: 58px 0 32px;
 }
 
 .eyebrow {
@@ -128,7 +148,7 @@ a {
 .home-panel h1 {
   max-width: 660px;
   margin: 0;
-  font-size: clamp(42px, 7vw, 76px);
+  font-size: clamp(40px, 6vw, 62px);
   font-weight: 400;
   line-height: 0.98;
   letter-spacing: -2px;
@@ -136,9 +156,98 @@ a {
 
 .home-copy {
   max-width: 460px;
-  margin: 28px 0 38px;
+  margin: 18px 0 0;
   color: var(--muted);
   font: 17px/1.6 var(--font-geist-sans), sans-serif;
+}
+
+.inspection-options {
+  display: grid;
+  gap: 12px;
+}
+
+.inspection-option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  min-height: 88px;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid var(--line);
+  padding: 16px 20px;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+.active-option {
+  border-color: var(--accent);
+  color: var(--ink);
+  background: var(--surface-soft);
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.active-option:hover {
+  border-color: var(--accent-deep);
+  background: var(--band);
+  box-shadow: 0 7px 18px rgba(28, 90, 128, 0.12);
+  transform: translateY(-2px);
+}
+
+.disabled-option {
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface-soft) 65%, transparent);
+  cursor: not-allowed;
+  opacity: 0.78;
+}
+
+.option-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  color: var(--accent);
+  border: 1px solid currentColor;
+}
+
+.option-content {
+  display: grid;
+  gap: 7px;
+}
+
+.option-content strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.option-content small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.option-arrow {
+  color: var(--accent);
+  transition: transform 180ms ease;
+}
+
+.active-option:hover .option-arrow {
+  transform: translateX(4px);
+}
+
+.coming-soon {
+  border: 1px solid var(--line);
+  padding: 6px 9px;
+  color: var(--muted);
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.home-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  color: var(--muted);
+  font: 9px/1 var(--font-geist-sans), sans-serif;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .primary-button,
@@ -1140,7 +1249,24 @@ input::placeholder {
   }
 
   .brand-mark {
-    margin-bottom: 44px;
+    width: 46px;
+    height: 46px;
+  }
+
+  .home-intro {
+    margin-top: 42px;
+  }
+
+  .inspection-option {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .option-arrow,
+  .coming-soon {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .toolbar-actions {

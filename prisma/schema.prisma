@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model VehicleInspection {
+  id                  String             @id @default(cuid())
+  vehicleType         String             @db.VarChar(120)
+  plateNumber         String             @db.VarChar(40)
+  driver              String             @db.VarChar(160)
+  inspectionDateTime  DateTime
+  inspectedBy         String             @db.VarChar(160)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  results             InspectionResult[]
+
+  @@index([plateNumber, inspectionDateTime])
+  @@index([createdAt])
+}
+
+model InspectionResult {
+  id            String           @id @default(cuid())
+  inspectionId  String
+  itemId        String           @db.VarChar(80)
+  itemName      String           @db.VarChar(160)
+  status        InspectionStatus
+  findings      String           @db.Text
+  inspection    VehicleInspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@unique([inspectionId, itemId])
+  @@index([itemId, status])
+}
+
+enum InspectionStatus {
+  PASS
+  FAIL
+}
