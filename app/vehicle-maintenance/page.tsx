@@ -8,6 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/pop
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "../../components/ui/toast";
 import { createVehicleInspection } from "../../lib/api/vehicle-inspections";
+import { exportVehicleMaintenanceExcel, exportVehicleMaintenancePdf } from "../../lib/exports/vehicle-maintenance";
 
 type ChecklistItem = {
   id: string;
@@ -93,10 +94,6 @@ const rightItems: ChecklistItem[] = [
 const allItems = [...leftItems, ...rightItems];
 const rowCount = Math.max(leftItems.length, rightItems.length);
 
-function escapeCsv(value: string) {
-  return `"${value.replaceAll('"', '""')}"`;
-}
-
 function formatDisplayDate(value: string) {
   if (!value) return "dd / mm / yyyy";
   const [year, month, day] = value.split("-");
@@ -128,14 +125,13 @@ function to24Hour(value: string) {
 
 export default function VehicleMaintenancePage() {
   const [statuses, setStatuses] = useState<Record<string, Exclude<Status, undefined>>>({});
-  const [theme, setTheme] = useState<"light" | "dark">(() => (
-    typeof window !== "undefined" && window.localStorage.getItem("vehicle-checklist-theme") === "dark" ? "dark" : "light"
-  ));
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toastOpen, setToastOpen] = useState(false);
   const [toast, setToast] = useState({ title: "", description: "" });
   const [inspectionDate, setInspectionDate] = useState("");
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [inspectionTime, setInspectionTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -183,6 +179,7 @@ export default function VehicleMaintenancePage() {
   function chooseDate(date: Date | undefined) {
     if (!date) return;
     setInspectionDate(`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`);
+    setDatePickerOpen(false);
     setErrors((current) => {
       const next = { ...current };
       delete next["inspection-date"];
@@ -268,45 +265,17 @@ export default function VehicleMaintenancePage() {
     }
   }
 
-  function exportCsv() {
-    const form = document.querySelector<HTMLFormElement>(".checklist-form");
-    if (!form) return;
-    const formData = new FormData(form);
-    const rows = [
-      ["Vehicle Maintenance Daily Checklist", ""],
-      ["Vehicle Type", String(formData.get("vehicle-type") || "")],
-      ["Plate Number", String(formData.get("plate-number") || "")],
-      ["Driver", String(formData.get("driver") || "")],
-      ["Inspection Date and Time", `${String(formData.get("inspection-date") || "")} ${formatTimeDisplay(String(formData.get("inspection-time") || ""))}`],
-      ["Item", "Status", "Findings"],
-      ...allItems.map((item) => [
-        item.name,
-        statuses[item.id] ? statuses[item.id].toUpperCase() : "",
-        String(formData.get(`finding-${item.id}`) || ""),
-      ]),
-      ["Inspected By", String(formData.get("inspected-by") || "")],
-    ];
-    const csv = rows.map((row) => row.map(escapeCsv).join(",")).join("\r\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `vehicle-maintenance-${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <ToastProvider>
     <main className="document-shell">
       <div className="document-toolbar no-print">
-        <Link className="back-link" href="/">← Fleet operations</Link>
+        <Link className="back-link" href="/">← Back</Link>
         <div className="toolbar-actions">
           <button className="tool-button" type="button" onClick={toggleTheme} aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}>
             {theme === "light" ? <Moon size={14} aria-hidden="true" /> : <Sun size={14} aria-hidden="true" />} {theme === "light" ? "Dark mode" : "Light mode"}
           </button>
-          <button className="tool-button" type="button" onClick={() => window.print()}><Printer size={14} aria-hidden="true" /> Print / PDF</button>
-          <button className="tool-button export-button" type="button" onClick={exportCsv}><Download size={14} aria-hidden="true" /> Export CSV</button>
+          <button className="tool-button" type="button" onClick={exportVehicleMaintenancePdf}><Printer size={14} aria-hidden="true" /> Print / PDF</button>
+          <button className="tool-button export-button" type="button" onClick={() => exportVehicleMaintenanceExcel({ statuses, leftItems, rightItems })}><Download size={14} aria-hidden="true" /> Export Excel</button>
         </div>
       </div>
 
@@ -328,9 +297,9 @@ export default function VehicleMaintenancePage() {
             <div className={`date-time-field ${errors["inspection-date"] || errors["inspection-time"] ? "field-error" : ""}`}>
               <span>Inspection Date and Time</span>
               <div className="date-time-picker">
-                <Popover>
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
                   <PopoverTrigger asChild><button className="picker-trigger" type="button"><CalendarDays size={15} aria-hidden="true" /><span>{formatDisplayDate(inspectionDate)}</span></button></PopoverTrigger>
-                  <PopoverContent align="start"><Calendar mode="single" selected={parseDateValue(inspectionDate)} onSelect={chooseDate} /></PopoverContent>
+                  <PopoverContent align="start"><Calendar mode="single" selected={parseDateValue(inspectionDate)} onSelect={chooseDate} captionLayout="dropdown" startMonth={new Date(2000, 0)} endMonth={new Date(new Date().getFullYear() + 1, 11)} /></PopoverContent>
                 </Popover>
                 <input type="hidden" name="inspection-date" value={inspectionDate} />
                 <div className="picker-wrap">

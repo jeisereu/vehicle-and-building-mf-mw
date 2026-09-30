@@ -785,6 +785,47 @@ input::placeholder {
   font-weight: 800;
 }
 
+.shadcn-calendar .rdp-dropdowns {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.shadcn-calendar .rdp-dropdown_root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.shadcn-calendar .rdp-dropdown_root select {
+  appearance: none;
+  min-width: 78px;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 4px 20px 4px 7px;
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+  font: 700 11px/1 var(--font-geist-sans), sans-serif;
+}
+
+.shadcn-calendar .rdp-dropdown_root:last-child select {
+  min-width: 62px;
+}
+
+.shadcn-calendar .rdp-dropdown_root .rdp-caption_label {
+  display: none;
+}
+
+.shadcn-calendar .rdp-dropdown_root .rdp-chevron {
+  position: absolute;
+  right: 5px;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+}
+
 .shadcn-calendar .rdp-caption_label {
   color: var(--ink);
 }
