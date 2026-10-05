@@ -23,14 +23,14 @@ Open [http://localhost:3000](http://localhost:3000). The API health check is ava
 
 ## Database Setup
 
-The Prisma schema uses MySQL and is ready for migrations when a MySQL database is available:
+The Prisma schema uses MySQL. Create the database named in `DATABASE_URL`, then run:
 
 ```powershell
 npm run prisma:generate
 npx prisma migrate dev --name init
 ```
 
-Until a database repository is connected, the Express API uses an in-memory repository so local form submission can be tested without MySQL. Set `DATABASE_URL` in `.env` before running Prisma migrations.
+The Express API persists inspections to MySQL through Prisma. Set `DATABASE_URL` in `.env` before running Prisma migrations or starting the API. The API logs successful saves and validation/database failures in the terminal.
 
 The vehicle form submits to `NEXT_PUBLIC_API_URL/api/inspections`, and the Express API validates the payload with Zod.
 

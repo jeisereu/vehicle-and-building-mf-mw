@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, CalendarDays, Check, CheckCheck, Clock3, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, CheckCheck, CheckCircle2, Clock3, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { FormEvent, startTransition, useEffect, useRef, useState } from "react";
 import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
@@ -16,6 +17,7 @@ type ChecklistItem = {
 };
 
 type Status = "pass" | "fail" | undefined;
+type ToastVariant = "error" | "success";
 
 const leftItems: ChecklistItem[] = [
   { id: "safety-belts", name: "Safety Belts" },
@@ -130,12 +132,17 @@ function to24Hour(value: string) {
 }
 
 export default function VehicleMaintenancePage() {
+  const router = useRouter();
   const [statuses, setStatuses] = useState<Record<string, Exclude<Status, undefined>>>({});
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toastOpen, setToastOpen] = useState(false);
-  const [toast, setToast] = useState({ title: "", description: "" });
+  const [toast, setToast] = useState<{ title: string; description: string; variant: ToastVariant }>({
+    title: "",
+    description: "",
+    variant: "error",
+  });
   const [inspectionDate, setInspectionDate] = useState("");
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [inspectionTime, setInspectionTime] = useState("");
@@ -250,6 +257,7 @@ export default function VehicleMaintenancePage() {
       setToast({
         title: "A few details need attention",
         description: `${Object.keys(nextErrors).length} issue${Object.keys(nextErrors).length === 1 ? "" : "s"} found. ${firstMessage}`,
+        variant: "error",
       });
       setToastOpen(true);
       setSubmitted(false);
@@ -273,11 +281,21 @@ export default function VehicleMaintenancePage() {
         })),
       });
       setSubmitted(true);
-      setToast({ title: "Inspection complete", description: "The inspection was accepted by the API." });
+      setToast({
+        title: "Inspection saved successfully",
+        description: "The inspection was saved to the database.",
+        variant: "success",
+      });
       setToastOpen(true);
+      resetForm();
+      router.push("/");
     } catch (error) {
       setSubmitted(false);
-      setToast({ title: "Could not save inspection", description: error instanceof Error ? error.message : "The inspection API is unavailable." });
+      setToast({
+        title: "Could not save inspection",
+        description: error instanceof Error ? error.message : "The inspection API is unavailable.",
+        variant: "error",
+      });
       setToastOpen(true);
     } finally {
       submittingRef.current = false;
@@ -382,8 +400,8 @@ export default function VehicleMaintenancePage() {
         {submitted && <p className="submit-message no-print" role="status">Inspection recorded for this session.</p>}
       </form>
     </main>
-    <Toast open={toastOpen} onOpenChange={setToastOpen}>
-      <AlertCircle size={18} aria-hidden="true" />
+    <Toast className={toast.variant === "success" ? "app-toast-success" : ""} open={toastOpen} onOpenChange={setToastOpen}>
+      {toast.variant === "success" ? <CheckCircle2 size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
       <div><ToastTitle>{toast.title}</ToastTitle><ToastDescription>{toast.description}</ToastDescription></div>
       <ToastClose />
     </Toast>

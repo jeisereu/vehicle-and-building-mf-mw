@@ -1,25 +1,26 @@
-import { randomUUID } from "node:crypto";
+import type { PrismaClient } from "@prisma/client";
 import type { CreateInspectionInput } from "../validators/inspection";
 
-type StoredInspection = CreateInspectionInput & {
-  id: string;
-  createdAt: string;
-};
-
 export interface InspectionRepository {
-  create(input: CreateInspectionInput): Promise<StoredInspection>;
+  create(input: CreateInspectionInput): ReturnType<PrismaInspectionRepository["create"]>;
 }
 
-export class InMemoryInspectionRepository implements InspectionRepository {
-  private readonly inspections: StoredInspection[] = [];
+export class PrismaInspectionRepository implements InspectionRepository {
+  constructor(private readonly client: PrismaClient) {}
 
   async create(input: CreateInspectionInput) {
-    const inspection: StoredInspection = {
-      ...input,
-      id: randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    this.inspections.push(inspection);
-    return inspection;
+    return this.client.vehicleInspection.create({
+      data: {
+        vehicleType: input.vehicleType,
+        plateNumber: input.plateNumber,
+        driver: input.driver,
+        inspectionDateTime: input.inspectionDateTime,
+        inspectedBy: input.inspectedBy,
+        results: {
+          create: input.results,
+        },
+      },
+      include: { results: true },
+    });
   }
 }
