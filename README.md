@@ -34,6 +34,8 @@ The Express API persists inspections to MySQL through Prisma. Set `DATABASE_URL`
 
 The vehicle form submits to `NEXT_PUBLIC_API_URL/api/inspections`, and the Express API validates the payload with Zod.
 
+For phone testing on the same local network, set `DEV_HOST` to the computer's LAN IP and use that IP in `NEXT_PUBLIC_API_URL` and `FRONTEND_ORIGIN`. Restart both development servers after changing `.env`.
+
 ## Useful Commands
 
 ```powershell
