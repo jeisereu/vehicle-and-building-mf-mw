@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, CalendarDays, Check, Clock3, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
-import { FormEvent, startTransition, useEffect, useState } from "react";
+import { AlertCircle, CalendarDays, Check, CheckCheck, Clock3, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
+import { FormEvent, startTransition, useEffect, useRef, useState } from "react";
 import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
@@ -93,6 +93,12 @@ const rightItems: ChecklistItem[] = [
 
 const allItems = [...leftItems, ...rightItems];
 const rowCount = Math.max(leftItems.length, rightItems.length);
+const groupedMobileItems = allItems.filter((item) => /^(tire-[1-4]|window-[1-4])/.test(item.id));
+const mobileItems = [
+  ...allItems.filter((item) => !groupedMobileItems.includes(item)),
+  ...[1, 2, 3, 4].flatMap((tireNumber) => groupedMobileItems.filter((item) => item.id.startsWith(`tire-${tireNumber}`))),
+  ...[1, 2, 3, 4].flatMap((windowNumber) => groupedMobileItems.filter((item) => item.id === `window-${windowNumber}`)),
+];
 
 function formatDisplayDate(value: string) {
   if (!value) return "dd / mm / yyyy";
@@ -134,6 +140,7 @@ export default function VehicleMaintenancePage() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [inspectionTime, setInspectionTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("vehicle-checklist-theme");
@@ -153,6 +160,16 @@ export default function VehicleMaintenancePage() {
       const next = { ...current };
       delete next[`status-${id}`];
       if (status === "pass") delete next[`finding-${id}`];
+      return next;
+    });
+    setSubmitted(false);
+  }
+
+  function markAllAsPass() {
+    setStatuses(Object.fromEntries(allItems.map((item) => [item.id, "pass"])));
+    setErrors((current) => {
+      const next = { ...current };
+      allItems.forEach((item) => delete next[`status-${item.id}`]);
       return next;
     });
     setSubmitted(false);
@@ -198,6 +215,7 @@ export default function VehicleMaintenancePage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (submittingRef.current) return;
     const formData = new FormData(event.currentTarget);
     const nextErrors: Record<string, string> = {};
     const requiredFields = [
@@ -221,7 +239,7 @@ export default function VehicleMaintenancePage() {
 
     allItems.forEach((item) => {
       if (!statuses[item.id]) nextErrors[`status-${item.id}`] = `${item.name} needs a Pass or Fail selection.`;
-      if (statuses[item.id] === "fail" && !String(formData.get(`finding-${item.id}`) || "").trim()) {
+      if (statuses[item.id] === "fail" && !getFindingValue(formData, item.id).trim()) {
         nextErrors[`finding-${item.id}`] = "Add a finding for this failed item.";
       }
     });
@@ -238,6 +256,7 @@ export default function VehicleMaintenancePage() {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       await createVehicleInspection({
@@ -250,7 +269,7 @@ export default function VehicleMaintenancePage() {
           itemId: item.id,
           itemName: item.name,
           status: statuses[item.id] === "pass" ? "PASS" : "FAIL",
-          findings: String(formData.get(`finding-${item.id}`) || ""),
+          findings: getFindingValue(formData, item.id),
         })),
       });
       setSubmitted(true);
@@ -261,6 +280,7 @@ export default function VehicleMaintenancePage() {
       setToast({ title: "Could not save inspection", description: error instanceof Error ? error.message : "The inspection API is unavailable." });
       setToastOpen(true);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -286,7 +306,7 @@ export default function VehicleMaintenancePage() {
               <strong>DICT</strong>
               <span>Department of Information and Communication Technology<br />Region 5 · Legazpi City</span>
             </div>
-            <div className="document-code">FM-VM-001<br /><span>Controlled form</span></div>
+            {/* <div className="document-code">FM-VM-001<br /><span>Controlled form</span></div> */}
             <h1>Vehicle Maintenance Daily Checklist</h1>
           </header>
 
@@ -317,7 +337,12 @@ export default function VehicleMaintenancePage() {
           <section className="table-section">
             <div className="table-caption">
               <div><span>Inspection record</span><strong>Mark every row as Pass or Fail</strong></div>
-              <small>{Object.keys(statuses).length} / {allItems.length} complete</small>
+              <div className="table-caption-actions">
+                <small>{Object.keys(statuses).length} / {allItems.length} complete</small>
+                <button className="mark-all-pass-button" type="button" onClick={markAllAsPass} title="Mark every checklist item as Pass">
+                  <CheckCheck size={14} aria-hidden="true" /> Mark all pass
+                </button>
+              </div>
             </div>
             <div className="table-scroll">
               <table className="checklist-table">
@@ -336,6 +361,11 @@ export default function VehicleMaintenancePage() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="mobile-checklist">
+              {mobileItems.map((item) => (
+                <MobileChecklistItem key={item.id} item={item} status={statuses[item.id]} errors={errors} onStatus={setStatus} />
+              ))}
             </div>
           </section>
 
@@ -378,7 +408,38 @@ function ChecklistCell({ item, status, errors, onStatus }: { item?: ChecklistIte
       <td className={`check-cell fail-cell ${cellClass} ${status === "fail" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
         <label><input type="checkbox" checked={status === "fail"} onChange={() => onStatus(item.id, "fail")} aria-label={`${item.name}: Fail`} /><span aria-hidden="true" /></label>
       </td>
-      <td className={`${cellClass} ${findingError ? "finding-error" : ""}`}><input className="finding-input" name={`finding-${item.id}`} aria-label={`Findings for ${item.name}`} aria-invalid={findingError} /></td>
+      <td className={`${cellClass} ${findingError ? "finding-error" : ""}`}><input className="finding-input" name={`finding-${item.id}`} placeholder="Add findings if needed" aria-label={`Findings for ${item.name}`} aria-invalid={findingError} /></td>
     </>
   );
+}
+
+function MobileChecklistItem({ item, status, errors, onStatus }: { item: ChecklistItem; status: Status; errors: Record<string, string>; onStatus: (id: string, status: Exclude<Status, undefined>) => void }) {
+  const isSubsection = /-(tread|pressure|cracks)$/.test(item.id) || /^(lug-wrench-jack|fire-extinguisher|first-aid-kit|flashlight|reflectors-flares|radiator|oil|auto-transmission|power-steering|brake-fluid|window-washer)$/.test(item.id);
+  const isParent = /^(tire-[1-4]|spare-tire|emergency-equipment|liquid-level-check)$/.test(item.id);
+  const statusError = Boolean(errors[`status-${item.id}`]);
+  const findingError = Boolean(errors[`finding-${item.id}`]);
+  return (
+    <div className={`mobile-checklist-item ${isParent ? "parent-item" : ""}`}>
+      <div className={`mobile-item-name ${isSubsection ? "subsection-item" : ""}`}>{item.name}</div>
+      <div className="mobile-statuses">
+        <label className={`mobile-status mobile-pass ${status === "pass" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
+          <span>Pass</span>
+          <input type="checkbox" checked={status === "pass"} onChange={() => onStatus(item.id, "pass")} aria-label={`${item.name}: Pass`} />
+          <i aria-hidden="true" />
+        </label>
+        <label className={`mobile-status mobile-fail ${status === "fail" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
+          <span>Fail</span>
+          <input type="checkbox" checked={status === "fail"} onChange={() => onStatus(item.id, "fail")} aria-label={`${item.name}: Fail`} />
+          <i aria-hidden="true" />
+        </label>
+      </div>
+      <div className={findingError ? "finding-error" : ""}>
+        <input className="mobile-finding-input" name={`mobile-finding-${item.id}`} placeholder="Add findings if needed" aria-label={`Findings for ${item.name}`} aria-invalid={findingError} />
+      </div>
+    </div>
+  );
+}
+
+function getFindingValue(formData: FormData, itemId: string) {
+  return String(formData.get(`mobile-finding-${itemId}`) || formData.get(`finding-${itemId}`) || "");
 }

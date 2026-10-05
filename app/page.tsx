@@ -32,10 +32,10 @@ export default function Home() {
           </div>
         </div>
 
-        <footer className="home-footer">
+        {/* <footer className="home-footer">
           <span>Controlled access</span>
           <span>FM-INS-001</span>
-        </footer>
+        </footer> */}
       </div>
     </main>
   );
