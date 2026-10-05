@@ -342,7 +342,7 @@ export default function VehicleMaintenancePage() {
                 <input type="hidden" name="inspection-date" value={inspectionDate} />
                 <div className="picker-wrap">
                   <Clock3 size={15} className="picker-icon" aria-hidden="true" />
-                  <Select value={inspectionTime ? formatTimeDisplay(inspectionTime) : undefined} onValueChange={chooseTime}>
+                  <Select value={inspectionTime ? formatTimeDisplay(inspectionTime) : ""} onValueChange={chooseTime}>
                     <SelectTrigger className="picker-trigger time-trigger"><SelectValue placeholder="Select time" /></SelectTrigger>
                     <SelectContent>{Array.from({ length: 24 }, (_, hour) => ["00", "30"].map((minute) => `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`)).flat().map((time) => <SelectItem value={time} key={time}>{time}</SelectItem>)}</SelectContent>
                   </Select>
