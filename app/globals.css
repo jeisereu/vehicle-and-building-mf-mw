@@ -780,7 +780,282 @@ input::placeholder {
 }
 
 .time-trigger {
-  padding-left: 24px;
+  padding-left: 0;
+}
+
+.desktop-time-picker .time-trigger {
+  gap: 7px;
+}
+
+.desktop-time-picker .time-trigger svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.desktop-time-picker {
+  display: block;
+}
+
+.mobile-time-picker {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .desktop-time-picker {
+    display: block !important;
+  }
+
+  .mobile-time-picker {
+    display: none !important;
+  }
+}
+
+.time-picker-popover {
+  width: min(286px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 16px;
+  transform-origin: var(--radix-popover-content-transform-origin);
+  animation: time-picker-in 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.time-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.time-input {
+  border: 0;
+  padding: 3px 0;
+  color: var(--accent);
+  background: transparent;
+  font: 700 24px/1.1 var(--font-geist-sans), sans-serif;
+  outline: none;
+}
+
+.time-input-group {
+  display: flex;
+  align-items: center;
+  border-bottom: 2px solid var(--accent);
+}
+
+.time-segment {
+  width: 34px;
+  text-align: center;
+}
+
+.time-segment:focus {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.time-separator {
+  color: var(--accent);
+  font: 700 24px/1.1 var(--font-geist-sans), sans-serif;
+}
+
+.period-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.period-toggle button,
+.clock-part-button,
+.clock-done-button {
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font: 700 11px/1 var(--font-geist-sans), sans-serif;
+}
+
+.period-toggle button {
+  padding: 8px 9px;
+}
+
+.period-toggle button + button {
+  border-left: 1px solid var(--line);
+}
+
+.period-toggle button.selected,
+.clock-part-button {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.clock-dial {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.clock-dial-face {
+  position: relative;
+  width: min(218px, 72vw);
+  height: min(218px, 72vw);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  animation: dial-mode-in 180ms ease-out;
+}
+
+.clock-dial-face::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 83px;
+  background: var(--accent);
+  content: "";
+  transform: translate(-50%, -100%) rotate(var(--hand-angle, 0deg));
+  transform-origin: bottom;
+  transition: transform 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.clock-dial-number {
+  position: absolute;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  font: 600 11px/1 var(--font-geist-sans), sans-serif;
+  transform: translate(-50%, -50%);
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.clock-dial-number.selected {
+  color: #fff;
+  background: var(--accent);
+  transform: translate(-50%, -50%) scale(1.08);
+}
+
+.clock-dial-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+}
+
+@keyframes dial-mode-in {
+  from {
+    opacity: 0;
+    transform: scale(.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.time-picker-footer {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 14px;
+}
+
+.clock-part-button {
+  border-radius: 4px;
+  padding: 6px 7px;
+}
+
+.clock-done-button {
+  margin-left: auto;
+  padding: 8px 10px;
+  color: var(--accent);
+}
+
+.clock-done-button:hover,
+.clock-done-button:focus-visible,
+.clock-part-button:hover,
+.clock-part-button:focus-visible,
+.period-toggle button:hover,
+.period-toggle button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: 1px;
+}
+
+@keyframes time-picker-in {
+  from {
+    opacity: 0;
+    transform: scale(.96) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-time-picker {
+    display: none !important;
+  }
+
+  .mobile-time-picker {
+    display: block !important;
+  }
+
+  .mobile-time-picker .time-trigger {
+    padding-left: 0;
+  }
+
+  .time-picker-modal {
+    width: min(344px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    padding: 18px;
+  }
+
+  .time-picker-popover {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: min(344px, calc(100vw - 24px));
+    max-height: calc(100vh - 24px);
+    margin: 0;
+    box-shadow: 0 0 0 100vmax rgb(15 23 42 / 42%), var(--shadow);
+    transform: translate(-50%, -50%);
+    transform-origin: center;
+    animation: time-picker-modal-in 220ms cubic-bezier(.2, .8, .2, 1);
+  }
+
+  .clock-dial-face {
+    width: min(250px, 72vw);
+    height: min(250px, 72vw);
+  }
+
+  .clock-dial-number {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@keyframes time-picker-modal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .picker-icon {
@@ -1192,6 +1467,106 @@ input::placeholder {
   text-align: right;
   font: 12px/1.3 var(--font-geist-sans), sans-serif;
 }
+
+.shadcn-alert-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  animation: alert-dialog-fade-in 160ms ease-out;
+}
+
+.shadcn-alert-dialog-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 61;
+  width: min(420px, calc(100vw - 32px));
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line-strong);
+  padding: 24px;
+  color: var(--ink);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  animation: alert-dialog-scale-in 160ms ease-out;
+}
+
+.shadcn-alert-dialog-header {
+  display: grid;
+  gap: 8px;
+}
+
+.shadcn-alert-dialog-title {
+  margin: 0;
+  font: 700 17px/1.2 var(--font-geist-sans), sans-serif;
+}
+
+.shadcn-alert-dialog-description {
+  margin: 0;
+  color: var(--muted);
+  font: 12px/1.5 var(--font-geist-sans), sans-serif;
+}
+
+.shadcn-alert-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.shadcn-alert-dialog-cancel,
+.shadcn-alert-dialog-action {
+  min-height: 36px;
+  border: 1px solid var(--line-strong);
+  padding: 8px 12px;
+  cursor: pointer;
+  font: 700 11px/1 var(--font-geist-sans), sans-serif;
+}
+
+.shadcn-alert-dialog-cancel {
+  color: var(--muted);
+  background: transparent;
+}
+
+.shadcn-alert-dialog-action {
+  border-color: var(--accent);
+  color: #fff;
+  background: var(--accent);
+}
+
+.shadcn-alert-dialog-cancel:hover,
+.shadcn-alert-dialog-cancel:focus-visible {
+  color: var(--ink);
+  background: var(--band);
+}
+
+.shadcn-alert-dialog-action:hover,
+.shadcn-alert-dialog-action:focus-visible {
+  background: var(--accent-deep);
+}
+
+.shadcn-alert-dialog-cancel:focus-visible,
+.shadcn-alert-dialog-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.shadcn-alert-dialog-cancel:disabled,
+.shadcn-alert-dialog-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+@keyframes alert-dialog-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes alert-dialog-scale-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 .toast-viewport {
   position: fixed;
   right: 24px;

@@ -1,106 +1,30 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, CalendarDays, Check, CheckCheck, CheckCircle2, Clock3, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
+import { AlertCircle, CalendarDays, Check, CheckCheck, CheckCircle2, Download, Moon, Printer, RotateCcw, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, startTransition, useEffect, useRef, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "../../components/ui/alert-dialog";
 import { Calendar } from "../../components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "../../components/ui/toast";
-import { createVehicleInspection } from "../../lib/api/vehicle-inspections";
+import { createVehicleInspection, type CreateVehicleInspectionPayload } from "../../lib/api/vehicle-inspections";
 import { exportVehicleMaintenanceExcel, exportVehicleMaintenancePdf } from "../../lib/exports/vehicle-maintenance";
+import { ChecklistCell, MobileChecklistItem } from "./checklist-items";
+import { allItems, leftItems, mobileItems, rightItems, rowCount, type ChecklistStatus } from "./checklist-data";
+import { InspectionTimePicker } from "./inspection-time-picker";
 
-type ChecklistItem = {
-  id: string;
-  name: string;
-};
-
-type Status = "pass" | "fail" | undefined;
+type Status = ChecklistStatus;
 type ToastVariant = "error" | "success";
-
-const leftItems: ChecklistItem[] = [
-  { id: "safety-belts", name: "Safety Belts" },
-  { id: "brakes", name: "Brakes" },
-  { id: "steering", name: "Steering" },
-  { id: "engine", name: "Engine" },
-  { id: "transmission", name: "Transmission" },
-  { id: "air-conditioning", name: "Air conditioning" },
-  { id: "wipers", name: "Wipers" },
-  { id: "high-beam", name: "Headlights High Beam" },
-  { id: "low-beam", name: "Headlights Low Beam" },
-  { id: "window-4", name: "Window 4" },
-  { id: "windshield", name: "Windshield" },
-  { id: "radio", name: "Radio" },
-  { id: "horn", name: "Horn" },
-  { id: "seatbelts", name: "Seatbelts" },
-  { id: "tire-1", name: "Tire 1" },
-  { id: "tire-1-tread", name: "Tread Depth" },
-  { id: "tire-1-pressure", name: "Inflation Pressure" },
-  { id: "tire-1-cracks", name: "Cracks and Cuts" },
-  { id: "tire-2", name: "Tire 2" },
-  { id: "tire-2-tread", name: "Tread Depth" },
-  { id: "tire-2-pressure", name: "Inflation Pressure" },
-  { id: "tire-2-cracks", name: "Cracks and Cuts" },
-  { id: "emergency-equipment", name: "Emergency Equipment" },
-  { id: "lug-wrench-jack", name: "Lug Wrench / Jack" },
-  { id: "fire-extinguisher", name: "Fire Extinguisher" },
-  { id: "first-aid-kit", name: "First Aid Kit" },
-  { id: "flashlight", name: "Flashlight" },
-  { id: "reflectors-flares", name: "Warning Reflectors and Flares" },
-  { id: "liquid-level-check", name: "Liquid Level Check" },
-  { id: "radiator", name: "Radiator" },
-  { id: "oil", name: "Oil" },
-  { id: "auto-transmission", name: "Auto Transmission" },
-  { id: "power-steering", name: "Power Steering" },
-  { id: "brake-fluid", name: "Brakes" },
-  { id: "window-washer", name: "Window Washer" },
-];
-
-const rightItems: ChecklistItem[] = [
-  { id: "turn-signals", name: "Turn Signals" },
-  { id: "brake-tail-lights", name: "Brake Lights/Tail Lights" },
-  { id: "door-1", name: "Door 1" },
-  { id: "door-2", name: "Door 2" },
-  { id: "door-3", name: "Door 3" },
-  { id: "door-4", name: "Door 4" },
-  { id: "window-1", name: "Window 1" },
-  { id: "window-2", name: "Window 2" },
-  { id: "window-3", name: "Window 3" },
-  { id: "tire-3", name: "Tire 3" },
-  { id: "tire-3-tread", name: "Tread Depth" },
-  { id: "tire-3-pressure", name: "Inflation Pressure" },
-  { id: "tire-3-cracks", name: "Cracks and Cuts" },
-  { id: "tire-4", name: "Tire 4" },
-  { id: "tire-4-tread", name: "Tread Depth" },
-  { id: "tire-4-pressure", name: "Inflation Pressure" },
-  { id: "tire-4-cracks", name: "Cracks and Cuts" },
-  { id: "spare-tire", name: "Spare Tire" },
-  { id: "spare-tread", name: "Tread Depth" },
-  { id: "spare-pressure", name: "Inflation Pressure" },
-  { id: "spare-cracks", name: "Cracks and Cuts" },
-  { id: "documentation", name: "Documentation" },
-  { id: "insurance", name: "Insurance" },
-  { id: "registration", name: "Registration" },
-  { id: "plate", name: "Plate" },
-  { id: "stickers", name: "Stickers" },
-  { id: "body", name: "Body" },
-  { id: "rear-view-mirror", name: "Rear View Mirror" },
-  { id: "side-view-mirror", name: "Side View Mirror" },
-  { id: "cameras", name: "Cameras" },
-  { id: "airbags", name: "Airbags" },
-  { id: "chairs", name: "Chairs" },
-  { id: "speedometers-gauges", name: "Speedometers, Gauges" },
-];
-
-const allItems = [...leftItems, ...rightItems];
-const rowCount = Math.max(leftItems.length, rightItems.length);
-const groupedMobileItems = allItems.filter((item) => /^(tire-[1-4]|window-[1-4])/.test(item.id));
-const mobileItems = [
-  ...allItems.filter((item) => !groupedMobileItems.includes(item)),
-  ...[1, 2, 3, 4].flatMap((tireNumber) => groupedMobileItems.filter((item) => item.id.startsWith(`tire-${tireNumber}`))),
-  ...[1, 2, 3, 4].flatMap((windowNumber) => groupedMobileItems.filter((item) => item.id === `window-${windowNumber}`)),
-];
 
 function formatDisplayDate(value: string) {
   if (!value) return "dd / mm / yyyy";
@@ -112,23 +36,6 @@ function parseDateValue(value: string) {
   if (!value) return undefined;
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
-}
-
-function formatTimeDisplay(value: string) {
-  if (!value) return "Select time";
-  const [rawHour, minute] = value.split(":").map(Number);
-  const period = rawHour >= 12 ? "PM" : "AM";
-  const hour = rawHour % 12 || 12;
-  return `${hour}:${String(minute).padStart(2, "0")} ${period}`;
-}
-
-function to24Hour(value: string) {
-  const [time, period] = value.split(" ");
-  let hour = Number(time.split(":")[0]);
-  const minute = Number(time.split(":")[1]);
-  if (period === "PM" && hour !== 12) hour += 12;
-  if (period === "AM" && hour === 12) hour = 0;
-  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
 export default function VehicleMaintenancePage() {
@@ -147,6 +54,8 @@ export default function VehicleMaintenancePage() {
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [inspectionTime, setInspectionTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [pendingInspection, setPendingInspection] = useState<CreateVehicleInspectionPayload | null>(null);
   const submittingRef = useRef(false);
 
   useEffect(() => {
@@ -211,15 +120,6 @@ export default function VehicleMaintenancePage() {
     });
   }
 
-  function chooseTime(time: string) {
-    setInspectionTime(to24Hour(time));
-    setErrors((current) => {
-      const next = { ...current };
-      delete next["inspection-time"];
-      return next;
-    });
-  }
-
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submittingRef.current) return;
@@ -264,22 +164,29 @@ export default function VehicleMaintenancePage() {
       return;
     }
 
+    setPendingInspection({
+      vehicleType: String(formData.get("vehicle-type")),
+      plateNumber: String(formData.get("plate-number")),
+      driver: String(formData.get("driver")),
+      inspectionDateTime: `${inspectionDate}T${inspectionTime}`,
+      inspectedBy: String(formData.get("inspected-by")),
+      results: allItems.map((item) => ({
+        itemId: item.id,
+        itemName: item.name,
+        status: statuses[item.id] === "pass" ? "PASS" : "FAIL",
+        findings: getFindingValue(formData, item.id),
+      })),
+    });
+    setConfirmationOpen(true);
+  }
+
+  async function confirmSubmission() {
+    if (!pendingInspection || submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
+    setConfirmationOpen(false);
     try {
-      await createVehicleInspection({
-        vehicleType: String(formData.get("vehicle-type")),
-        plateNumber: String(formData.get("plate-number")),
-        driver: String(formData.get("driver")),
-        inspectionDateTime: `${inspectionDate}T${inspectionTime}`,
-        inspectedBy: String(formData.get("inspected-by")),
-        results: allItems.map((item) => ({
-          itemId: item.id,
-          itemName: item.name,
-          status: statuses[item.id] === "pass" ? "PASS" : "FAIL",
-          findings: getFindingValue(formData, item.id),
-        })),
-      });
+      await createVehicleInspection(pendingInspection);
       setSubmitted(true);
       setToast({
         title: "Inspection saved successfully",
@@ -288,6 +195,7 @@ export default function VehicleMaintenancePage() {
       });
       setToastOpen(true);
       resetForm();
+      setPendingInspection(null);
       router.push("/");
     } catch (error) {
       setSubmitted(false);
@@ -300,6 +208,7 @@ export default function VehicleMaintenancePage() {
     } finally {
       submittingRef.current = false;
       setSubmitting(false);
+      setPendingInspection(null);
     }
   }
 
@@ -341,11 +250,11 @@ export default function VehicleMaintenancePage() {
                 </Popover>
                 <input type="hidden" name="inspection-date" value={inspectionDate} />
                 <div className="picker-wrap">
-                  <Clock3 size={15} className="picker-icon" aria-hidden="true" />
-                  <Select value={inspectionTime ? formatTimeDisplay(inspectionTime) : ""} onValueChange={chooseTime}>
-                    <SelectTrigger className="picker-trigger time-trigger"><SelectValue placeholder="Select time" /></SelectTrigger>
-                    <SelectContent>{Array.from({ length: 24 }, (_, hour) => ["00", "30"].map((minute) => `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`)).flat().map((time) => <SelectItem value={time} key={time}>{time}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <InspectionTimePicker value={inspectionTime} onChange={setInspectionTime} onSelect={() => setErrors((current) => {
+                    const next = { ...current };
+                    delete next["inspection-time"];
+                    return next;
+                  })} />
                 </div>
                 <input type="hidden" name="inspection-time" value={inspectionTime} />
               </div>
@@ -400,6 +309,22 @@ export default function VehicleMaintenancePage() {
         {submitted && <p className="submit-message no-print" role="status">Inspection recorded for this session.</p>}
       </form>
     </main>
+    <AlertDialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Submit maintenance checklist?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will save the completed inspection to the database. Please confirm that the checklist details and findings are correct.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={submitting}>Review checklist</AlertDialogCancel>
+          <AlertDialogAction onClick={confirmSubmission} disabled={submitting}>
+            {submitting ? "Saving..." : "Confirm submission"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Toast className={toast.variant === "success" ? "app-toast-success" : ""} open={toastOpen} onOpenChange={setToastOpen}>
       {toast.variant === "success" ? <CheckCircle2 size={18} aria-hidden="true" /> : <AlertCircle size={18} aria-hidden="true" />}
       <div><ToastTitle>{toast.title}</ToastTitle><ToastDescription>{toast.description}</ToastDescription></div>
@@ -407,54 +332,6 @@ export default function VehicleMaintenancePage() {
     </Toast>
     <ToastViewport />
     </ToastProvider>
-  );
-}
-
-function ChecklistCell({ item, status, errors, onStatus }: { item?: ChecklistItem; status: Status; errors: Record<string, string>; onStatus: (id: string, status: Exclude<Status, undefined>) => void }) {
-  if (!item) return <><td colSpan={4} className="empty-cell" /></>;
-  const isSubsection = /-(tread|pressure|cracks)$/.test(item.id) || /^(lug-wrench-jack|fire-extinguisher|first-aid-kit|flashlight|reflectors-flares|radiator|oil|auto-transmission|power-steering|brake-fluid|window-washer)$/.test(item.id);
-  const isParent = /^(tire-[1-4]|spare-tire|emergency-equipment|liquid-level-check)$/.test(item.id);
-  const cellClass = isParent ? "parent-cell" : "";
-  const statusError = Boolean(errors[`status-${item.id}`]);
-  const findingError = Boolean(errors[`finding-${item.id}`]);
-  return (
-    <>
-      <td className={`item-cell ${cellClass} ${isParent ? "parent-item" : ""} ${isSubsection ? "subsection-item" : ""}`}>{item.name}</td>
-      <td className={`check-cell pass-cell ${cellClass} ${status === "pass" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
-        <label><input type="checkbox" checked={status === "pass"} onChange={() => onStatus(item.id, "pass")} aria-label={`${item.name}: Pass`} /><span aria-hidden="true" /></label>
-      </td>
-      <td className={`check-cell fail-cell ${cellClass} ${status === "fail" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
-        <label><input type="checkbox" checked={status === "fail"} onChange={() => onStatus(item.id, "fail")} aria-label={`${item.name}: Fail`} /><span aria-hidden="true" /></label>
-      </td>
-      <td className={`${cellClass} ${findingError ? "finding-error" : ""}`}><input className="finding-input" name={`finding-${item.id}`} placeholder="Add findings if needed" aria-label={`Findings for ${item.name}`} aria-invalid={findingError} /></td>
-    </>
-  );
-}
-
-function MobileChecklistItem({ item, status, errors, onStatus }: { item: ChecklistItem; status: Status; errors: Record<string, string>; onStatus: (id: string, status: Exclude<Status, undefined>) => void }) {
-  const isSubsection = /-(tread|pressure|cracks)$/.test(item.id) || /^(lug-wrench-jack|fire-extinguisher|first-aid-kit|flashlight|reflectors-flares|radiator|oil|auto-transmission|power-steering|brake-fluid|window-washer)$/.test(item.id);
-  const isParent = /^(tire-[1-4]|spare-tire|emergency-equipment|liquid-level-check)$/.test(item.id);
-  const statusError = Boolean(errors[`status-${item.id}`]);
-  const findingError = Boolean(errors[`finding-${item.id}`]);
-  return (
-    <div className={`mobile-checklist-item ${isParent ? "parent-item" : ""}`}>
-      <div className={`mobile-item-name ${isSubsection ? "subsection-item" : ""}`}>{item.name}</div>
-      <div className="mobile-statuses">
-        <label className={`mobile-status mobile-pass ${status === "pass" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
-          <span>Pass</span>
-          <input type="checkbox" checked={status === "pass"} onChange={() => onStatus(item.id, "pass")} aria-label={`${item.name}: Pass`} />
-          <i aria-hidden="true" />
-        </label>
-        <label className={`mobile-status mobile-fail ${status === "fail" ? "checked" : ""} ${statusError ? "status-error" : ""}`}>
-          <span>Fail</span>
-          <input type="checkbox" checked={status === "fail"} onChange={() => onStatus(item.id, "fail")} aria-label={`${item.name}: Fail`} />
-          <i aria-hidden="true" />
-        </label>
-      </div>
-      <div className={findingError ? "finding-error" : ""}>
-        <input className="mobile-finding-input" name={`mobile-finding-${item.id}`} placeholder="Add findings if needed" aria-label={`Findings for ${item.name}`} aria-invalid={findingError} />
-      </div>
-    </div>
   );
 }
 
